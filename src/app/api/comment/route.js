@@ -4,17 +4,38 @@ import { getUserFromCookie } from "@/lib/auth";
 
 export async function POST(req) {
   await db;
+
   const user = await getUserFromCookie();
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   const { postId, text } = await req.json();
-  const post = await Post.findById(postId);
-  if (!post) return new Response("Post not found", { status: 404 });
 
-  post.comments.push({ userId: user.id, text });
+  if (!text || text.trim() === "") {
+    return new Response("Comment cannot be empty", { status: 400 });
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    return new Response("Post not found", { status: 404 });
+  }
+
+  // Add the comment
+  post.comments.push({
+    userId: user.id,
+    text,
+  });
+
   await post.save();
 
-  const populatedPost = await post.populate("userId", "username").populate("comments.userId", "username");
+  // Re-fetch with proper population
+  const populatedPost = await Post.findById(postId)
+    .populate("userId", "username")
+    .populate("comments.userId", "username");
 
-  return new Response(JSON.stringify(populatedPost), { status: 200 });
+  return new Response(JSON.stringify(populatedPost), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
