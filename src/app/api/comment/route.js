@@ -4,6 +4,7 @@ import { getUserFromCookie } from "@/lib/auth";
 
 export async function POST(req) {
   await db;
+  //add
 
   const user = await getUserFromCookie();
   if (!user) {
